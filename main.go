@@ -8,6 +8,7 @@ import (
 	"github.com/oybekchajon/blogApp/config"
 	"github.com/oybekchajon/blogApp/storage/postgres"
 	"github.com/oybekchajon/blogApp/api"
+	_"github.com/lib/pq"
 )
 
 func main(){

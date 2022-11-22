@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
-
 )
 
 type User struct {
@@ -39,7 +39,7 @@ func NewDBManager(db *sql.DB) *DBManager {
 	return &DBManager{db}
 }
 
-func (m *DBManager) CreateUser(user *User) (*User, error){
+func (m *DBManager) CreateUser(user *User) (*User, error) {
 	query := `
 		INSERT INTO users(
 			first_name,
@@ -48,7 +48,7 @@ func (m *DBManager) CreateUser(user *User) (*User, error){
 			email,
 			gender,
 			password,
-			username,
+			user_name,
 			profile_image_url,
 			type
 		) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -79,17 +79,26 @@ func (m *DBManager) CreateUser(user *User) (*User, error){
 	return user, nil
 }
 
-func (m *DBManager) GetUser(id int) (*User, error){
+func (m *DBManager) GetUser(id int) (*User, error) {
 	query := `
-		SELECT * FROM users WHERE id=$1
+		SELECT 
+			first_name,
+			last_name,
+			phone_number,
+			email,
+			gender,
+			password,
+			user_name,
+			profile_image_url,
+			type
+		FROM users WHERE id=$1
 	`
 
-	row := m.db.QueryRow(query,id)
+	row := m.db.QueryRow(query, id)
 
 	var result User
 
 	err := row.Scan(
-		&result.ID,
 		&result.FirstName,
 		&result.LastName,
 		&result.PhoneNumber,
@@ -107,3 +116,119 @@ func (m *DBManager) GetUser(id int) (*User, error){
 	return &result, nil
 }
 
+func (m *DBManager) UpdateUser(user *User) (*User, error) {
+	query := `
+		UPDATE users SET
+			first_name=$1,
+			last_name=$2,
+			phone_number=$3,
+			email=$4,
+			gender=$5,
+			password=$6,
+			user_name=$7,
+			profile_image_url=$8,
+			type=$9
+		WHERE id=$10
+		RETURNING first_name, last_name, phone_number, email, gender, password, user_name, profile_image_url, type
+	`
+
+	row := m.db.QueryRow(query,
+		user.FirstName,
+		user.LastName,
+		user.PhoneNumber,
+		user.Email,
+		user.Gender,
+		user.Password,
+		user.Username,
+		user.ProfileImageUrl,
+		user.Type,
+		user.ID,
+	)
+
+	var result User
+
+	err := row.Scan(
+		&result.FirstName,
+		&result.LastName,
+		&result.PhoneNumber,
+		&result.Email,
+		&result.Gender,
+		&result.Password,
+		&result.Username,
+		&result.ProfileImageUrl,
+		&result.Type,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, err
+}
+
+func (m *DBManager) GetAll(params *GetAllUsersParams) (*GetBookResult, error) {
+	result := GetBookResult{
+		Users: make([]*User, 0),
+	}
+
+	offset := (params.Page - 1) * params.Limit
+
+	limit := fmt.Sprintf(" LIMIT %d OFFSET %d ", params.Limit, offset)
+
+	filter := ""
+	if params.Search != "" {
+		str := "%" + params.Search + "%"
+		filter += fmt.Sprintf(`
+			WHERE first_name ILIKE '%s' OR last_name ILIKE '%s' OR email ILIKE '%s' 
+				OR username ILIKE '%s' OR phone_number ILIKE '%s'`,
+			str, str, str, str, str,
+		)
+	}
+
+	query := `
+		SELECT 
+			id,
+			first_name,
+			last_name,
+			phone_number,
+			email,
+			gender,
+			password,
+			user_name,
+			profile_image_url,
+			type,
+			created_at
+		FROM users
+		` + filter +`
+		ORDER BY created_at desc
+		` + limit
+
+	rows, err := m.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next(){
+		var u User
+
+		err := rows.Scan(
+			&u.ID,
+			&u.FirstName,
+			&u.LastName,
+			&u.PhoneNumber,
+			&u.Email,
+			&u.Gender,
+			&u.Password,
+			&u.Username,
+			&u.ProfileImageUrl,
+			&u.Type,
+			&u.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result.Users = append(result.Users, &u)
+	}
+	return &result, nil
+}
