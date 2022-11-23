@@ -1,4 +1,17 @@
 definitions:
+  models.CreatePostRequest:
+    properties:
+      category_id:
+        type: integer
+      description:
+        type: string
+      image_url:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
   models.GetAllUsersResponse:
     properties:
       categories:
@@ -6,6 +19,27 @@ definitions:
           $ref: '#/definitions/models.UserRequest'
         type: array
       count:
+        type: integer
+    type: object
+  models.Post:
+    properties:
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      views_count:
         type: integer
     type: object
   models.ResponseError:
@@ -66,6 +100,59 @@ info:
   title: Swagger for user api
   version: "1.0"
 paths:
+  /posts:
+    post:
+      consumes:
+      - application/json
+      description: Create a post
+      parameters:
+      - description: post
+        in: body
+        name: post
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Post'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ResponseError'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a post
+      tags:
+      - post
+  /posts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get post by id
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Post'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ResponseError'
+      summary: Get post by id
+      tags:
+      - post
   /users:
     get:
       consumes:

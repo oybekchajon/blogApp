@@ -32,6 +32,9 @@ func NewServer(storage *postgres.DBManager) *gin.Engine {
 	r.POST("/users", h.CreateUser)
 	r.PUT("/users/:id", h.UpdateUser)
 	r.GET("users/", h.GetAllUsers)
+
+	r.POST("/posts", h.CreatePost)
+	r.GET("/posts/:id", h.GetPost)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swagFiles.Handler))
 	return r
 }
